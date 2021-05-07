@@ -1,0 +1,160 @@
+<meta charset="utf8">
+<style>
+
+table {
+
+	font-family: sans-serif;
+	border-collapse: collapse;
+}
+
+td,th {
+
+	border: 1px solid black;
+	text-align: center;
+	padding: 8px;
+
+}
+
+.select {
+
+	background: dodgerblue;
+	color: white;
+}
+
+</style>
+
+<input style="margin-bottom:15px" id="target" type="text">
+
+<button id="submit">submit</button>
+<button id="refresh">refresh</button>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+
+	shiftKey = false
+
+	last = ""
+
+	current = ""
+
+	var socket = io("http://localhost:8080")
+
+	document.querySelector("#refresh").onclick = (e) => socket.emit('refresh')
+
+	socket.on('dir', function(data) {
+
+		// list = data.filter( x => ((/\.m4a/)).test(x) || ((/\.mp3/)).test(x) ) 
+		
+		list = data.filter( x => ((/\.text/)).test(x) ) 
+
+		let content = "<table>"
+
+		for( x of list ){
+
+			content += `<tr><td>${x}<\/td><\/tr>`
+		}
+
+		content += "</table>"
+
+		document.querySelector("table").innerHTML = content
+	   
+	})
+
+	function allowDrop(e) {
+	
+		e.preventDefault()
+	}
+
+	function drag(e){
+
+		current = e.target
+
+		e.dataTransfer.setData("txt", e.target.textContent)
+
+	}
+
+	function drop(e){
+
+		console.log(current)
+
+		change = {}
+
+		try{
+
+			data = e.dataTransfer.getData("txt")
+
+			change["drag_value"] = data
+			change["drag_id"]    = data.match(/(^\d+) (.*)/)[1]
+			change["drag_txt"]   = data.match(/(^\d+) (.*)/)[2]
+
+			change["drop_value"] = e.target.textContent
+			change["drop_id"]    = e.target.textContent.match(/(^\d+) (.*)/)[1] 
+			change["drop_txt"]   = e.target.textContent.match(/(^\d+) (.*)/)[2] 
+
+			// change.push([current.textContent,e.target.textContent.match(/(^\d+) (.*)/)[1] + " " + e.target.textContent.match(/(^\d+) (.*)/)[2]])
+			// change.push([e.target.textContent,data.match(/(^\d+) (.*)/)[1] + " " + data.match(/(^\d+) (.*)/)[2]])
+
+			socket.emit('message', change)
+
+			current.textContent  = change["drag_id"] + " " + change["drop_txt"]
+
+			e.target.textContent = change["drop_id"] + " " + change["drag_txt"]
+
+
+		}catch(e){
+
+			console.log(e.target)
+		}
+
+	}
+
+	document.addEventListener("keydown", event => {
+
+		shiftKey = event.shiftKey 
+
+	})
+
+	document.addEventListener("keyup", event => {
+
+		shiftKey = event.shiftKey 
+
+	})
+
+	function select(e){
+
+		if(!event.shiftKey){
+
+			e.classList.toggle("select")
+		
+		}else{
+
+			debut = parseInt(last.id)
+
+			fin   = parseInt(e.id)
+
+			let table = document.querySelectorAll("tr")
+
+			if( fin - debut > 0 ){
+
+				for(i=debut+1;i<=fin;i++){
+
+					table[i].classList.toggle("select")
+				
+				}
+
+			}else{
+
+				for(i=fin;i<debut;i++){
+
+					table[i].classList.toggle("select")
+				
+				}
+			}
+
+		}
+
+		last = e
+
+	}
+
+</script>
